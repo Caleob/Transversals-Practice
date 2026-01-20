@@ -13,7 +13,8 @@ const ANGLE_TYPES = {
 };
 
 const POINTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-const PROBLEM_SEQUENCE = [1, 1, 2, 2, 3, 3];
+// const PROBLEM_SEQUENCE = [1, 1, 2, 2, 3, 3]; // Normal 6-problem sequence
+const PROBLEM_SEQUENCE = [1, 2, 3]; // Testing 3-problem sequence (one per level)
 
 // --- Helper Functions ---
 function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -516,6 +517,8 @@ class GameManager {
             l3: 0
         };
         this.currentProblemStats = { naming: 0, relation: 0, solve: 0 };
+        this.problemStartTime = 0; // Timer start
+        this.helpUsed = false; // Track help usage
         this.init();
     }
 
@@ -556,6 +559,7 @@ class GameManager {
         const closeHelpBtn = document.getElementById('closeGraspableBtn');
 
         helpBtn.addEventListener('click', () => {
+            this.helpUsed = true; // Mark help as used
             helpModal.classList.add('active');
 
             // Construct Equation based on problem props
@@ -620,6 +624,8 @@ class GameManager {
         this.currentProblemStats = { naming: 0, relation: 0, solve: 0 };
         const level = PROBLEM_SEQUENCE[this.problemIndex];
         this.problem = ProblemGenerator.generate(level);
+        this.problemStartTime = Date.now(); // Start timer
+        this.helpUsed = false; // Reset help tracker
 
         this.ui.renderDiagram(this.problem);
         this.ui.fillPointBank(POINTS);
@@ -816,10 +822,16 @@ class GameManager {
             input.disabled = true;
             this.ui.setFeedback(3, `Correct! ${this.problem.variable} = ${this.problem.solution}°`, 'success');
             this.ui.completeStage('stage3');
+
+            // Calculate duration
+            const duration = Math.round((Date.now() - this.problemStartTime) / 1000);
+
             this.problemHistory.push({
                 level: this.problem.level,
                 totalScore: this.totalScore,
-                breakdown: { ...this.currentProblemStats }
+                breakdown: { ...this.currentProblemStats },
+                duration: duration,
+                helpUsed: this.helpUsed ? 'YES' : 'NO'
             });
             document.getElementById('checkStage3Btn').disabled = true;
             setTimeout(() => this.showProblemSummary(), 1000);
@@ -831,10 +843,16 @@ class GameManager {
                 input.disabled = true;
                 this.ui.setFeedback(3, `Auto-filled: ${this.problem.solution}° (0 pts)`, 'warning');
                 this.ui.completeStage('stage3');
+
+                // Calculate duration
+                const duration = Math.round((Date.now() - this.problemStartTime) / 1000);
+
                 this.problemHistory.push({
                     level: this.problem.level,
                     totalScore: this.totalScore,
-                    breakdown: { ...this.currentProblemStats }
+                    breakdown: { ...this.currentProblemStats },
+                    duration: duration,
+                    helpUsed: this.helpUsed ? 'YES' : 'NO'
                 });
                 setTimeout(() => this.showProblemSummary(), 1500);
             } else {
@@ -874,8 +892,9 @@ class GameManager {
         const previousTotal = this.problemIndex > 0 ? this.problemHistory[this.problemHistory.length - 2]?.totalScore || 0 : 0;
 
         const gained = this.problemHistory.length > 0 ? (currentTotal - previousTotal) : currentTotal;
+        const totalProblems = PROBLEM_SEQUENCE.length;
 
-        document.getElementById('problemSummaryText').textContent = `Problem ${this.problemIndex + 1} of 6 Complete!`;
+        document.getElementById('problemSummaryText').textContent = `Problem ${this.problemIndex + 1} of ${totalProblems} Complete!`;
         document.getElementById('interimScore').textContent = currentTotal;
         document.getElementById('levelSummary').textContent = `Points Earned: +${gained}`;
 
@@ -903,14 +922,33 @@ class GameManager {
     }
 
     downloadReport() {
-        const getPct = (score, max) => Math.round((score / max) * 100);
+        const getPct = (score, max) => max === 0 ? 0 : Math.round((score / max) * 100);
+
+        // Dynamic Totals Calculation
+        const totalProblems = PROBLEM_SEQUENCE.length;
+        const maxScorePerProblem = 17; // 6 (Naming) + 6 (Relation) + 5 (Solve)
+        const maxTotal = totalProblems * maxScorePerProblem;
+
+        // Calculate max points per category
+        const maxNaming = totalProblems * 6;
+        const maxRelation = totalProblems * 6;
+        const maxSolve = totalProblems * 5;
+
+        // Calculate max points per level
+        const levelCounts = { 1: 0, 2: 0, 3: 0 };
+        PROBLEM_SEQUENCE.forEach(lvl => {
+            if (levelCounts[lvl] !== undefined) levelCounts[lvl]++;
+        });
+        const maxL1 = levelCounts[1] * 17;
+        const maxL2 = levelCounts[2] * 17;
+        const maxL3 = levelCounts[3] * 17;
 
         let reportText = `
 PARALLEL LINES & TRANSVERSALS REPORT
 ------------------------------------
 Student: ${this.user.firstName} ${this.user.lastInitial}
 Date: ${new Date().toLocaleDateString()}
-Total Points: ${this.totalScore} / 102 (${getPct(this.totalScore, 102)}%)
+Total Points: ${this.totalScore} / ${maxTotal} (${getPct(this.totalScore, maxTotal)}%)
 
 PER-PROBLEM BREAKDOWN
 ------------------------------------
@@ -918,28 +956,31 @@ PER-PROBLEM BREAKDOWN
 
         this.problemHistory.forEach((item, index) => {
             const b = item.breakdown;
+            const pTotal = b.naming + b.relation + b.solve;
             reportText += `Problem ${index + 1} (Level ${item.level}):\n`;
+            reportText += `  - Time:             ${item.duration}s\n`;
+            reportText += `  - Equation Help:    ${item.helpUsed}\n`;
             reportText += `  - Identify Angles:      ${b.naming} / 6\n`;
             reportText += `  - Relationship ID:      ${b.relation} / 6\n`;
             reportText += `  - Variable Solving:     ${b.solve} / 5\n`;
-            reportText += `  - Problem Total:        ${b.naming + b.relation + b.solve} / 17\n\n`;
+            reportText += `  - Problem Total:        ${pTotal} / 17\n\n`;
         });
 
         reportText += `
 DETAILED BREAKDOWN BY CATEGORY
 ------------------------------------
-1. Angle Naming:      ${this.stats.naming} / 36 (${getPct(this.stats.naming, 36)}%)
-2. Relationship ID:   ${this.stats.relation} / 36 (${getPct(this.stats.relation, 36)}%)
-3. Variable Solving:  ${this.stats.solve} / 30 (${getPct(this.stats.solve, 30)}%)
+1. Angle Naming:      ${this.stats.naming} / ${maxNaming} (${getPct(this.stats.naming, maxNaming)}%)
+2. Relationship ID:   ${this.stats.relation} / ${maxRelation} (${getPct(this.stats.relation, maxRelation)}%)
+3. Variable Solving:  ${this.stats.solve} / ${maxSolve} (${getPct(this.stats.solve, maxSolve)}%)
 
 DETAILED BREAKDOWN BY LEVEL
 ------------------------------------
-Level 1 (Basic/Vars): ${this.stats.l1} / 34 (${getPct(this.stats.l1, 34)}%)
-Level 2 (Expr/Value): ${this.stats.l2} / 34 (${getPct(this.stats.l2, 34)}%)
-Level 3 (Two Exprs):  ${this.stats.l3} / 34 (${getPct(this.stats.l3, 34)}%)
+Level 1 (Basic/Vars): ${this.stats.l1} / ${maxL1} (${getPct(this.stats.l1, maxL1)}%)
+Level 2 (Expr/Value): ${this.stats.l2} / ${maxL2} (${getPct(this.stats.l2, maxL2)}%)
+Level 3 (Two Exprs):  ${this.stats.l3} / ${maxL3} (${getPct(this.stats.l3, maxL3)}%)
 
 ------------------------------------
-Session Status: Completed all 6 problems.
+Session Status: Completed all ${totalProblems} problems.
 `;
         const blob = new Blob([reportText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
@@ -949,6 +990,7 @@ Session Status: Completed all 6 problems.
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 const game = new GameManager();
