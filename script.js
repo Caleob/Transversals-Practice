@@ -402,6 +402,102 @@ class UIManager {
     }
 }
 
+class GMathManager {
+    constructor(containerId) {
+        this.containerId = containerId;
+        this.canvas = null;
+        this.isInitialized = false;
+        this.loadRetries = 0;
+    }
+
+    init() {
+        this.checkAndLoad();
+    }
+
+    checkAndLoad() {
+        if (typeof loadGM !== 'undefined') {
+            console.log("GM script found, initializing...");
+            loadGM(() => this.setupCanvas(), { version: '2.24.11' });
+        } else {
+            console.warn("Graspable Math script not found. Waiting...");
+            if (this.loadRetries < 5) {
+                this.loadRetries++;
+                // Retry every 1 second
+                setTimeout(() => this.checkAndLoad(), 1000);
+            } else {
+                console.error("Graspable Math script failed to load after retries.");
+                this.displayError();
+            }
+        }
+    }
+
+    displayError() {
+        const container = document.getElementById(this.containerId);
+        if (container) {
+            container.innerHTML = `
+                <div style="padding: 2rem; color: #ef4444; text-align: center;">
+                    <h3>Equation Solver Unavailable</h3>
+                    <p>Could not load the math engine. Please check your internet connection.</p>
+                </div>`;
+        }
+    }
+
+    setupCanvas() {
+        // Clear placeholder content
+        const container = document.getElementById(this.containerId);
+        if (container) container.innerHTML = '';
+
+        const options = {
+            // Minimalist View Options
+            formula_panel: false,
+            insert_btn: false,
+            new_sheet_btn: false,
+            load_btn: false,
+            save_btn: false,
+            settings_btn: false,
+            help_btn: false,
+            draw_btn: false,
+
+            // Helpful Tools for Solving
+            transform_btn: true,
+            scrub_btn: true,
+            keypad_btn: true,
+            undo_btn: true,
+            redo_btn: true,
+
+            // Scrolling
+            vertical_scroll: true,
+            horizontal_scroll: true,
+            use_toolbar: true
+        };
+
+        this.canvas = new gmath.Canvas('#' + this.containerId, options);
+        this.isInitialized = true;
+    }
+
+    loadEquation(equation) {
+        if (!this.canvas) {
+            if (this.isInitialized) {
+                // Should be ready, but maybe canvas failed?
+                return;
+            }
+            console.warn("GM Canvas not ready yet. Queuing load...");
+            // Retry once
+            setTimeout(() => {
+                if (this.canvas) this.loadEquation(equation);
+            }, 1000);
+            return;
+        }
+
+        this.canvas.model.reset();
+        this.canvas.model.createElement('derivation', {
+            eq: equation,
+            pos: { x: 'center', y: 100 },
+            font_size: 40
+        });
+    }
+}
+
 class GameManager {
     constructor() {
         this.user = { firstName: '', lastInitial: '', sessionStart: new Date() };
@@ -410,6 +506,7 @@ class GameManager {
         this.totalScore = 0;
         this.problemHistory = [];
         this.ui = new UIManager();
+        this.gm = new GMathManager('graspableContainer'); // Init GM Manager
         this.stats = {
             naming: 0,
             relation: 0,
@@ -423,6 +520,9 @@ class GameManager {
     }
 
     init() {
+        // Initialize Graspable Math
+        this.gm.init();
+
         document.getElementById('checkStage1Btn').addEventListener('click', () => this.checkStage1());
         document.getElementById('checkStage2Btn').addEventListener('click', () => this.checkStage2());
         document.getElementById('checkStage3Btn').addEventListener('click', () => this.checkStage3());
@@ -457,6 +557,20 @@ class GameManager {
 
         helpBtn.addEventListener('click', () => {
             helpModal.classList.add('active');
+
+            // Construct Equation based on problem props
+            const p = this.problem;
+            let eqString = '';
+
+            if (p.props.congruent) {
+                // val1 = val2
+                eqString = `${p.val1_display} = ${p.val2_display}`;
+            } else {
+                // val1 + val2 = 180
+                eqString = `${p.val1_display} + ${p.val2_display} = 180`;
+            }
+
+            this.gm.loadEquation(eqString);
         });
 
         closeHelpBtn.addEventListener('click', () => {
