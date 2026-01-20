@@ -529,6 +529,19 @@ class GameManager {
         });
 
         document.getElementById('variableLabel').textContent = `${this.problem.variable} = `;
+
+        // Update Stage 2 Relationship Labels
+        const relButtons = document.querySelectorAll('#relationOptions .option-btn');
+        const expr1 = this.problem.val1_display;
+        const expr2 = this.problem.val2_display;
+
+        relButtons.forEach(btn => {
+            if (btn.dataset.value === 'congruent') {
+                btn.textContent = `Congruent (≅): ${expr1} = ${expr2}`;
+            } else if (btn.dataset.value === 'supplementary') {
+                btn.textContent = `Supplementary: ${expr1} + ${expr2} = 180°`;
+            }
+        });
     }
 
     checkStage1() {
