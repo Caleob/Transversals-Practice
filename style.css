@@ -110,6 +110,54 @@ button {
     transform: scale(1);
 }
 
+/* Fullscreen Modal Override */
+.modal-overlay.fullscreen .modal-content-fullscreen {
+    background: var(--surface);
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    border-radius: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.modal-overlay.fullscreen.active .modal-content-fullscreen {
+    transform: none;
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    font-size: 2.5rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    line-height: 1;
+    z-index: 1100;
+    transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+    color: var(--error);
+}
+
+.graspable-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.placeholder-content {
+    text-align: center;
+    color: var(--text-muted);
+}
+
 .modal-content h2 {
     margin-bottom: 1rem;
     color: var(--primary);
@@ -328,6 +376,25 @@ button {
     background: #e2e8f0;
     color: #94a3b8;
     cursor: not-allowed;
+}
+
+/* Graspable Help Button */
+.graspable-btn {
+    background: white;
+    border: 2px solid #e2e8f0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.graspable-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: var(--primary);
+}
+
+.graspable-logo-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
 }
 
 .stage-card.completed .stage-badge {

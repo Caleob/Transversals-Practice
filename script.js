@@ -377,9 +377,15 @@ class UIManager {
         if (locked) {
             stage.classList.add('locked');
             stage.classList.remove('completed', 'active');
+            if (id === 'stage3') {
+                document.getElementById('graspableHelpBtn').disabled = true;
+            }
         } else {
             stage.classList.remove('locked', 'completed');
             stage.classList.add('active');
+            if (id === 'stage3') {
+                document.getElementById('graspableHelpBtn').disabled = false;
+            }
         }
     }
 
@@ -443,6 +449,18 @@ class GameManager {
         input.onkeydown = (e) => {
             if (e.key === 'Enter' && input.value !== '') this.checkStage3();
         };
+
+        const helpBtn = document.getElementById('graspableHelpBtn');
+        const helpModal = document.getElementById('graspableHelpModal');
+        const closeHelpBtn = document.getElementById('closeGraspableBtn');
+
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.add('active');
+        });
+
+        closeHelpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('active');
+        });
 
         this.setupLogin();
     }

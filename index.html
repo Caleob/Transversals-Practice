@@ -61,6 +61,19 @@
         </div>
     </div>
 
+    <!-- Graspable Math Help Modal -->
+    <div id="graspableHelpModal" class="modal-overlay fullscreen">
+        <div class="modal-content-fullscreen">
+            <button class="close-modal-btn" id="closeGraspableBtn" title="Close Help">&times;</button>
+            <div id="graspableContainer" class="graspable-container">
+                <div class="placeholder-content">
+                    <h3>Graspable Math Equation Help</h3>
+                    <p>Material to help with equation solving will appear here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Application -->
     <div id="appContainer" class="container">
 
@@ -152,16 +165,22 @@
                         </div>
                     </div>
 
-                    <!-- Stage 3 -->
                     <div id="stage3" class="stage-card locked">
                         <div class="stage-header">
                             <div class="header-left">
                                 <div class="stage-badge">3</div>
                                 <h3>Solve for Variable</h3>
                             </div>
-                            <button id="checkStage3Btn" class="icon-check-btn" disabled title="Check Answer">
-                                ✔️
-                            </button>
+                            <div class="header-right" style="display: flex; gap: 0.5rem;">
+                                <button id="graspableHelpBtn" class="icon-check-btn graspable-btn" disabled
+                                    title="Equation Solving Help">
+                                    <img src="Graspable_Math_Logo.png" alt="Graspable Math Help"
+                                        class="graspable-logo-icon">
+                                </button>
+                                <button id="checkStage3Btn" class="icon-check-btn" disabled title="Check Answer">
+                                    ✔️
+                                </button>
+                            </div>
                         </div>
                         <div class="stage-content">
                             <div class="solve-area">
