@@ -253,52 +253,17 @@ class UIManager {
 
     drawArc(pos, coords, color, label) {
         let cx, cy;
-        // Map pos to center point. 1-4 is I1, 5-8 is I2.
-        // Wait, logic in getAnglePoints: 
-        // 1,2,3,4 use I1. 5,6,7,8 use I2.
-        const m = this.activePointMap; // Wait, we don't have this. Use coords directly.
-        // We can just check pos index
         if (pos <= 4) {
-            cx = coords[Object.keys(coords).find(k => coords[k].y === 150 && k.length < 3)].x; // Hacky? No, use consistent I1
-            // Better: we generated coords for I1 and I2 specifically.
-            // We can pass them or just re-find them. 
-            // Actually, renderDiagram knows them.
-            // Let's rely on the coords object passed in.
-            // We need to know WHICH label is I1.
-            // But we don't know the label string 'A' 'B' etc easily here without the map.
-            // However, coords is a map of LABEL -> {x,y}.
-            // We need the coordinates of the Intersection.
-            // We know I1 is y=150, I2 is y=350.
-            // Or better, calculate based on dynamic logic match.
+            // Points 1-4 are around intersection I1 (Top Line)
+            const I1_coords = Object.values(coords).filter(c => Math.abs(c.y - 150) < 1).sort((a, b) => a.x - b.x)[1];
+            cx = I1_coords.x;
+            cy = I1_coords.y;
+        } else {
+            // Points 5-8 are around intersection I2 (Bottom Line)
+            const I2_coords = Object.values(coords).filter(c => Math.abs(c.y - 350) < 1).sort((a, b) => a.x - b.x)[1];
+            cx = I2_coords.x;
+            cy = I2_coords.y;
         }
-
-        // Simpler: Just recalculate from currentTheta/etc or use the passed coords
-        // The passed coords object keys are LABELS 'A', 'B'.
-        // We don't easily know which is I1.
-        // But we computed I1 and I2 logic before.
-        // Let's assume standard Y values: 150 is Top, 350 is Bot.
-        // There are 3 points at Y=150: L1_Left, I1, L1_Right.
-        // I1 is the middle one. Sorted by X?
-        // Or we can assume the renderDiagram passed correct coords.
-
-        // Let's refine logic: 
-        // In the original code, cx=200/300 was hardcoded.
-        // Now it's dynamic.
-        // We know I1 is the center point on top line.
-        // We can pick the point with y=150 that is NOT x=50 or x=450? 
-        // Or just identifying by being between extremities.
-
-        const pointsAt150 = Object.values(coords).filter(c => Math.abs(c.y - 150) < 1);
-        const pointsAt350 = Object.values(coords).filter(c => Math.abs(c.y - 350) < 1);
-
-        pointsAt150.sort((a, b) => a.x - b.x); // Left, I1, Right
-        const I1_coords = pointsAt150[1];
-
-        pointsAt350.sort((a, b) => a.x - b.x); // Left, I2, Right
-        const I2_coords = pointsAt350[1];
-
-        if (pos <= 4) { cx = I1_coords.x; cy = I1_coords.y; }
-        else { cx = I2_coords.x; cy = I2_coords.y; }
 
         let a1, a2;
         const theta = this.currentTheta;
@@ -380,7 +345,7 @@ class UIManager {
     setupDropZones(onPointPlaced) {
         const zones = document.querySelectorAll('.drop-zone');
         zones.forEach(oldZone => {
-            // Clone and replace to strip old event listeners (FIX for Bug 18)
+            // Clone and replace to strip old event listeners
             const zone = oldZone.cloneNode(true);
             oldZone.replaceWith(zone);
 
@@ -405,8 +370,7 @@ class UIManager {
         });
     }
 
-    usePoint(p) { /* No longer grey out */ }
-    unusePoint(p) { /* No longer grey out */ }
+    // usePoint and unusePoint were removed as they are no longer needed.
 
     lockStage(id, locked) {
         const stage = document.getElementById(id);
