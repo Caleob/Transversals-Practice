@@ -612,6 +612,14 @@ button {
     font-weight: 700;
 }
 
+.score-breakdown {
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
 @keyframes shake {
 
     0%,

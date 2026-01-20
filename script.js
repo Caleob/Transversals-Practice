@@ -418,6 +418,7 @@ class GameManager {
             l2: 0,
             l3: 0
         };
+        this.currentProblemStats = { naming: 0, relation: 0, solve: 0 };
         this.init();
     }
 
@@ -502,6 +503,7 @@ class GameManager {
         }
 
         this.attempts = { blue: 0, red: 0, type: 0, rel: 0, solve: 0 };
+        this.currentProblemStats = { naming: 0, relation: 0, solve: 0 };
         const level = PROBLEM_SEQUENCE[this.problemIndex];
         this.problem = ProblemGenerator.generate(level);
 
@@ -700,7 +702,11 @@ class GameManager {
             input.disabled = true;
             this.ui.setFeedback(3, `Correct! ${this.problem.variable} = ${this.problem.solution}°`, 'success');
             this.ui.completeStage('stage3');
-            this.problemHistory.push({ level: this.problem.level, totalScore: this.totalScore });
+            this.problemHistory.push({
+                level: this.problem.level,
+                totalScore: this.totalScore,
+                breakdown: { ...this.currentProblemStats }
+            });
             document.getElementById('checkStage3Btn').disabled = true;
             setTimeout(() => this.showProblemSummary(), 1000);
         } else {
@@ -711,7 +717,11 @@ class GameManager {
                 input.disabled = true;
                 this.ui.setFeedback(3, `Auto-filled: ${this.problem.solution}° (0 pts)`, 'warning');
                 this.ui.completeStage('stage3');
-                this.problemHistory.push({ level: this.problem.level, totalScore: this.totalScore });
+                this.problemHistory.push({
+                    level: this.problem.level,
+                    totalScore: this.totalScore,
+                    breakdown: { ...this.currentProblemStats }
+                });
                 setTimeout(() => this.showProblemSummary(), 1500);
             } else {
                 input.classList.add('incorrect');
@@ -740,6 +750,7 @@ class GameManager {
         this.stats[levelKey] += pts;
 
         this.totalScore += pts;
+        this.currentProblemStats[mode] += pts;
         this.updateScoreUI();
     }
 
@@ -753,6 +764,10 @@ class GameManager {
         document.getElementById('problemSummaryText').textContent = `Problem ${this.problemIndex + 1} of 6 Complete!`;
         document.getElementById('interimScore').textContent = currentTotal;
         document.getElementById('levelSummary').textContent = `Points Earned: +${gained}`;
+
+        const breakdown = this.currentProblemStats;
+        document.getElementById('problemBreakdown').textContent =
+            `Points Earned: Identify Angles ${breakdown.naming}/6, Relationship ${breakdown.relation}/6, Solve for Variable ${breakdown.solve}/5`;
 
         document.getElementById('problemCompleteModal').classList.add('active');
     }
@@ -776,13 +791,27 @@ class GameManager {
     downloadReport() {
         const getPct = (score, max) => Math.round((score / max) * 100);
 
-        const text = `
+        let reportText = `
 PARALLEL LINES & TRANSVERSALS REPORT
 ------------------------------------
 Student: ${this.user.firstName} ${this.user.lastInitial}
 Date: ${new Date().toLocaleDateString()}
 Total Points: ${this.totalScore} / 102 (${getPct(this.totalScore, 102)}%)
 
+PER-PROBLEM BREAKDOWN
+------------------------------------
+`;
+
+        this.problemHistory.forEach((item, index) => {
+            const b = item.breakdown;
+            reportText += `Problem ${index + 1} (Level ${item.level}):\n`;
+            reportText += `  - Identify Angles:      ${b.naming} / 6\n`;
+            reportText += `  - Relationship ID:      ${b.relation} / 6\n`;
+            reportText += `  - Variable Solving:     ${b.solve} / 5\n`;
+            reportText += `  - Problem Total:        ${b.naming + b.relation + b.solve} / 17\n\n`;
+        });
+
+        reportText += `
 DETAILED BREAKDOWN BY CATEGORY
 ------------------------------------
 1. Angle Naming:      ${this.stats.naming} / 36 (${getPct(this.stats.naming, 36)}%)
@@ -798,7 +827,7 @@ Level 3 (Two Exprs):  ${this.stats.l3} / 34 (${getPct(this.stats.l3, 34)}%)
 ------------------------------------
 Session Status: Completed all 6 problems.
 `;
-        const blob = new Blob([text], { type: 'text/plain' });
+        const blob = new Blob([reportText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
